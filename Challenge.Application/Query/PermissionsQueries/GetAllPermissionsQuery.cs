@@ -13,7 +13,7 @@ namespace Challenge.Application.Query.PermissionsQueries {
             }
 
             public async Task<IEnumerable<Permission>> Handle(GetAllPermissionsQuery request, CancellationToken cancellationToken) {
-                return await unitOfWork.GetRepository<Permission>().Get(orderBy: result => result.OrderBy(x => x.Id));
+                return await unitOfWork.GetRepository<Permission>().Get(orderBy: result => result.OrderBy(x => x.Id), includeProperties: "PermissionType");
             }
         }
     }

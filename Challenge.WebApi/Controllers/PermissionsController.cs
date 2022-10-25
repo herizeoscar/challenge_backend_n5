@@ -5,7 +5,6 @@ using Challenge.Application.Query.PermissionsQueries;
 using Confluent.Kafka;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
-using Moq;
 using Nest;
 using Newtonsoft.Json;
 using static Challenge.Application.Enums.ApplicationEnums;
@@ -36,14 +35,14 @@ namespace Challenge.WebApi.Controllers {
                 if(result.Count() > 0) {
                     await elasticClient.IndexManyAsync(result);
                 }
-                //using(var producer = new ProducerBuilder<Null, string>(config).Build()) {
-                //    await producer.ProduceAsync("test-topic", new Message<Null, string> {
-                //        Value = JsonConvert.SerializeObject(new KafkaMessageDto() {
-                //            Id = Guid.NewGuid(),
-                //            NameOperation = Operation.Get.ToDescription()
-                //        })
-                //    });
-                //}
+                using(var producer = new ProducerBuilder<Null, string>(config).Build()) {
+                    await producer.ProduceAsync("test-topic", new Message<Null, string> {
+                        Value = JsonConvert.SerializeObject(new KafkaMessageDto() {
+                            Id = Guid.NewGuid(),
+                            NameOperation = Operation.Get.ToDescription()
+                        })
+                    });
+                }
                 return Ok(result);
             } catch(Exception e) {
                 logger.LogError(e.Message);
@@ -57,14 +56,14 @@ namespace Challenge.WebApi.Controllers {
                 logger.LogInformation("Request Permissions");
                 var result = await mediator.Send(command);
                 await elasticClient.IndexDocumentAsync(result);
-                //using(var producer = new ProducerBuilder<Null, string>(config).Build()) {
-                //    await producer.ProduceAsync("test-topic", new Message<Null, string> {
-                //        Value = JsonConvert.SerializeObject(new KafkaMessageDto() {
-                //            Id = Guid.NewGuid(),
-                //            NameOperation = Operation.Request.ToDescription()
-                //        })
-                //    });
-                //}
+                using(var producer = new ProducerBuilder<Null, string>(config).Build()) {
+                    await producer.ProduceAsync("test-topic", new Message<Null, string> {
+                        Value = JsonConvert.SerializeObject(new KafkaMessageDto() {
+                            Id = Guid.NewGuid(),
+                            NameOperation = Operation.Request.ToDescription()
+                        })
+                    });
+                }
                 return Ok(result);
             } catch(Exception e) {
                 logger.LogError(e.Message);
