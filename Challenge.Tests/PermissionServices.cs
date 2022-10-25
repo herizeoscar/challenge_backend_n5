@@ -1,4 +1,6 @@
-﻿using Challenge.Application.Commands.PermissionsCommands;
+﻿using AutoMapper;
+using Challenge.Application.Commands.PermissionsCommands;
+using Challenge.Application.Services.Abstractions;
 using Challenge.WebApi.Controllers;
 using Confluent.Kafka;
 using FakeItEasy;
@@ -11,17 +13,19 @@ namespace Challenge.Tests {
     public class PermissionServices {
 
         private readonly ILogger<PermissionsController> logger;
+        private readonly IMapper mapper;
         private readonly IMediator mediator;
         private readonly IElasticClient elasticClient;
-        private readonly ProducerConfig config;
+        private readonly IKafkaService kafkaService;
         private readonly PermissionsController controller;
 
         public PermissionServices() {
             this.logger = A.Fake<ILogger<PermissionsController>>();
+            this.mapper = A.Fake<IMapper>();
             this.mediator = A.Fake<IMediator>();
             this.elasticClient = A.Fake<IElasticClient>();
-            this.config = A.Fake<ProducerConfig>();
-            controller = new PermissionsController(logger, mediator, elasticClient, config);
+            this.kafkaService = A.Fake<IKafkaService>();
+            controller = new PermissionsController(logger, mapper, mediator, elasticClient, kafkaService);
         }
 
         [Fact]
