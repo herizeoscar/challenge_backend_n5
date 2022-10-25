@@ -1,12 +1,12 @@
-﻿using Challenge.Application.Commands.PermissionsCommands;
+﻿using AutoMapper;
+using Challenge.Application.Commands.PermissionsCommands;
 using Challenge.Application.DTOs;
-using Challenge.Application.ExtensionsMethods;
 using Challenge.Application.Query.PermissionsQueries;
-using Confluent.Kafka;
+using Challenge.Application.Services.Abstractions;
+using Challenge.Domain.Entities;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
 using Nest;
-using Newtonsoft.Json;
 using static Challenge.Application.Enums.ApplicationEnums;
 
 namespace Challenge.WebApi.Controllers {
@@ -16,15 +16,17 @@ namespace Challenge.WebApi.Controllers {
     public class PermissionsController : Controller {
 
         private readonly ILogger<PermissionsController> logger;
+        private readonly IMapper mapper;
         private readonly IMediator mediator;
         private readonly IElasticClient elasticClient;
-        private readonly ProducerConfig config;
+        private readonly IKafkaService kafkaService;
 
-        public PermissionsController(ILogger<PermissionsController> logger, IMediator mediator, IElasticClient elasticClient, ProducerConfig config) {
+        public PermissionsController(ILogger<PermissionsController> logger, IMapper mapper, IMediator mediator, IElasticClient elasticClient, IKafkaService kafkaService) {
             this.logger = logger;
+            this.mapper = mapper;
             this.mediator = mediator;
             this.elasticClient = elasticClient;
-            this.config = config;
+            this.kafkaService = kafkaService;
         }
 
         [HttpGet]
@@ -35,15 +37,8 @@ namespace Challenge.WebApi.Controllers {
                 if(result.Count() > 0) {
                     await elasticClient.IndexManyAsync(result);
                 }
-                using(var producer = new ProducerBuilder<Null, string>(config).Build()) {
-                    await producer.ProduceAsync("test-topic", new Message<Null, string> {
-                        Value = JsonConvert.SerializeObject(new KafkaMessageDto() {
-                            Id = Guid.NewGuid(),
-                            NameOperation = Operation.Get.ToDescription()
-                        })
-                    });
-                }
-                return Ok(result);
+                await kafkaService.RegisterOperation("test-topic", Operation.Get);
+                return Ok(mapper.Map<IEnumerable<Permission>, IEnumerable<PermissionDto>>(result));
             } catch(Exception e) {
                 logger.LogError(e.Message);
                 return BadRequest(e.Message);
@@ -56,15 +51,8 @@ namespace Challenge.WebApi.Controllers {
                 logger.LogInformation("Request Permissions");
                 var result = await mediator.Send(command);
                 await elasticClient.IndexDocumentAsync(result);
-                using(var producer = new ProducerBuilder<Null, string>(config).Build()) {
-                    await producer.ProduceAsync("test-topic", new Message<Null, string> {
-                        Value = JsonConvert.SerializeObject(new KafkaMessageDto() {
-                            Id = Guid.NewGuid(),
-                            NameOperation = Operation.Request.ToDescription()
-                        })
-                    });
-                }
-                return Ok(result);
+                await kafkaService.RegisterOperation("test-topic", Operation.Request);
+                return Ok(mapper.Map<Permission, PermissionDto>(result));
             } catch(Exception e) {
                 logger.LogError(e.Message);
                 return BadRequest(e.Message);
@@ -77,19 +65,13 @@ namespace Challenge.WebApi.Controllers {
                 logger.LogInformation("Modify Permissions");
                 var result = await mediator.Send(command);
                 await elasticClient.IndexDocumentAsync(result);
-                using(var producer = new ProducerBuilder<Null, string>(config).Build()) {
-                    await producer.ProduceAsync("test-topic", new Message<Null, string> {
-                        Value = JsonConvert.SerializeObject(new KafkaMessageDto() {
-                            Id = Guid.NewGuid(),
-                            NameOperation = Operation.Modify.ToDescription()
-                        })
-                    });
-                }
-                return Ok(result);
+                await kafkaService.RegisterOperation("test-topic", Operation.Modify);
+                return Ok(mapper.Map<Permission, PermissionDto>(result));
             } catch(Exception e) {
                 logger.LogError(e.Message);
                 return BadRequest(e.Message);
             }
         }
+
     }
 }

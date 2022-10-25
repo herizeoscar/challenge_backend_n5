@@ -2,6 +2,7 @@ using Challenge.Application;
 using Challenge.Application.ExtensionsMethods;
 using Challenge.Infrastructure;
 using Challenge.Infrastructure.Context;
+using Challenge.WebApi.Mappings;
 using Confluent.Kafka;
 using FluentValidation.AspNetCore;
 using MediatR;
@@ -9,7 +10,6 @@ using Microsoft.EntityFrameworkCore;
 using Serilog;
 using Serilog.Filters;
 using System.Reflection;
-using static Challenge.Application.Enums.ApplicationEnums;
 
 try {
     var builder = WebApplication.CreateBuilder(args);
@@ -33,12 +33,14 @@ try {
     builder.Services.AddMediatR(Assembly.Load(new AssemblyName("Challenge.Application")));
     builder.Services.AddMediatR(Assembly.GetExecutingAssembly());
     builder.Services.AddPersistence(builder.Configuration);
+    builder.Services.AddApplication(builder.Configuration);
     builder.Services.AddElasticsearch(builder.Configuration);
     builder.Services.AddSingleton<ProducerConfig>(new ProducerConfig() {
         BootstrapServers = "localhost:9092"
     });
     builder.Host.UseSerilog();
     builder.Services.AddHealthChecks();
+    builder.Services.AddAutoMapper(typeof(MappingProfile));
 
     var app = builder.Build();
     app.MapHealthChecks("/health");
